@@ -84,19 +84,16 @@ export default function App() {
     setChecked((prev) => ({ ...prev, [task.label]: !prev[task.label] }));
   };
 
-  const handleSubmit = async () => {
-    const existing = entries.find((entry) => entry.date === dateString);
-    if (existing) {
-      const docRef = doc(db, "scores", existing.id);
-      await updateDoc(docRef, { score, grade: getGrade(score) });
-    } else {
-      await addDoc(collection(db, "scores"), {
-        date: dateString,
-        score,
-        grade: getGrade(score),
-      });
-    }
-  };
+ import { setDoc, doc } from "firebase/firestore"; // update this import
+
+const handleSubmit = async () => {
+  const docRef = doc(db, "scores", dateString);
+  await setDoc(docRef, {
+    date: dateString,
+    score,
+    grade: getGrade(score),
+  });
+};
 
   const renderToday = () => (
     <>
