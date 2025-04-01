@@ -6,6 +6,13 @@ import {
   setDoc,
   doc
 } from "firebase/firestore";
+import {
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  format,
+  getDay
+} from "date-fns";
 import "./App.css";
 
 const checklistItems = [
@@ -128,6 +135,51 @@ function App() {
     );
   };
 
+  const renderCalendar = () => {
+    const start = startOfMonth(new Date());
+    const end = endOfMonth(new Date());
+    const days = eachDayOfInterval({ start, end });
+
+    const scoreMap = data.reduce((acc, cur) => {
+      acc[cur.date] = cur;
+      return acc;
+    }, {});
+
+    const leadingBlanks = Array(getDay(start)).fill(null);
+
+    return (
+      <div className="grid grid-cols-7 gap-1 text-center text-sm mt-4">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+          <div key={d} className="font-bold">
+            {d}
+          </div>
+        ))}
+        {leadingBlanks.map((_, i) => (
+          <div key={"blank" + i}></div>
+        ))}
+        {days.map((day) => {
+          const dateStr = format(day, "yyyy-MM-dd");
+          const entry = scoreMap[dateStr];
+          return (
+            <div
+              key={dateStr}
+              className={`border p-1 rounded h-16 flex flex-col items-center justify-center ${
+                entry ? "bg-gray-100" : "bg-white"
+              }`}
+            >
+              <div className="text-xs font-semibold">{format(day, "d")}</div>
+              {entry && (
+                <div className="text-xs">
+                  {entry.score} ({entry.grade})
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 max-w-md mx-auto">
       <h1 className="text-2xl font-bold mb-4">Daily100</h1>
@@ -174,7 +226,12 @@ function App() {
         </>
       )}
 
-      {view !== "today" && renderScores()}
+      {view !== "today" && (
+        <>
+          {renderScores()}
+          {renderCalendar()}
+        </>
+      )}
     </div>
   );
 }
