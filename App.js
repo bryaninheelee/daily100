@@ -10,7 +10,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import "./App.css";
-
+console.log("✅ This is the correct App.js");
 const firebaseConfig = {
   apiKey: "AIzaSyC966X_9sp3JP64U_VPkCY-7Km7Oh6MB9I",
   authDomain: "daily100-ce649.firebaseapp.com",
