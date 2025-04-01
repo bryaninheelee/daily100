@@ -1,33 +1,39 @@
+// --- App.js ---
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import { db } from "./firebase";
 import {
   collection,
-  doc,
-  setDoc,
+  addDoc,
   getDocs,
   query,
   where,
+  updateDoc,
+  doc,
 } from "firebase/firestore";
 
 const checklistItems = [
-  { label: "Slept > 8 hours", weight: 5 },
-  { label: "Stretch", weight: 5 },
-  { label: "Pray", weight: 1 },
-  { label: "Gym", weight: 5 },
-  { label: "Yoga", weight: 5 },
-  { label: "Run", weight: 5 },
-  { label: "Journal", weight: 1 },
-  { label: "Read > 10 pages", weight: 10 },
-  { label: "Call home", weight: 1 },
-  { label: "Cook", weight: 1 },
-  { label: "Clean", weight: 5 },
-  { label: "Practice German", weight: 20 },
-  { label: "Practice music", weight: 5 },
-  { label: "Write content", weight: 10 },
-  { label: "Create content", weight: 10 },
-  { label: "Meditate", weight: 1 },
-  { label: "Screen time < 4 hours", weight: 10 },
+  "Slept > 8 hours",
+  "Stretch",
+  "Pray",
+  "Gym",
+  "Yoga",
+  "Run",
+  "Journal",
+  "Read > 10 pages",
+  "Call home",
+  "Cook",
+  "Clean",
+  "Practice German",
+  "Practice music",
+  "Write content",
+  "Create content",
+  "Meditate",
+  "Screen time < 4 hours",
+];
+
+const weights = [
+  5, 5, 1, 5, 5, 5, 1, 10, 1, 1, 5, 20, 5, 10, 10, 1, 10
 ];
 
 const getGrade = (score) => {
@@ -38,91 +44,76 @@ const getGrade = (score) => {
   return "F";
 };
 
+const formatDate = (date) => date.toISOString().split("T")[0];
+
 function App() {
-  const [view, setView] = useState("today");
-  const [checkedItems, setCheckedItems] = useState(
-    Array(checklistItems.length).fill(false)
-  );
-  const [submissionStatus, setSubmissionStatus] = useState(null);
-  const today = new Date().toISOString().split("T")[0];
-  const [history, setHistory] = useState([]);
+  const [selectedView, setSelectedView] = useState("Today");
+  const [date, setDate] = useState(formatDate(new Date()));
+  const [checked, setChecked] = useState(Array(checklistItems.length).fill(false));
+  const [score, setScore] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const q = query(collection(db, "scores"), where("date", "==", today));
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map((doc) => doc.data());
-      setHistory(data);
-    };
-    fetchData();
-  }, [view]);
-
-  const handleSubmit = async () => {
-    const score = checkedItems.reduce(
-      (total, checked, index) =>
-        total + (checked ? checklistItems[index].weight : 0),
-      0
-    );
-
-    const grade = getGrade(score);
-    const docRef = doc(db, "scores", today);
-    await setDoc(docRef, { date: today, score, grade });
-    setSubmissionStatus("submitted");
+  const calculateScore = (checks) => {
+    return checks.reduce((sum, isChecked, i) => sum + (isChecked ? weights[i] : 0), 0);
   };
 
-  const totalScore = checkedItems.reduce(
-    (total, checked, index) =>
-      total + (checked ? checklistItems[index].weight : 0),
-    0
-  );
-  const grade = getGrade(totalScore);
+  const handleCheck = (index) => {
+    const newChecked = [...checked];
+    newChecked[index] = !newChecked[index];
+    setChecked(newChecked);
+    setScore(calculateScore(newChecked));
+  };
+
+  const handleSubmit = async () => {
+    const q = query(collection(db, "scores"), where("date", "==", date));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const docRef = querySnapshot.docs[0].ref;
+      await updateDoc(docRef, { score, grade: getGrade(score) });
+    } else {
+      await addDoc(collection(db, "scores"), {
+        date,
+        score,
+        grade: getGrade(score),
+      });
+    }
+    setSubmitted(true);
+    setTimeout(() => setSubmitted(false), 2000);
+  };
 
   return (
-    <div className="app-container">
+    <div className="app">
       <h1>Daily100</h1>
       <div className="nav">
-        <button
-          className={view === "today" ? "active" : ""}
-          onClick={() => setView("today")}
-        >
-          Today
-        </button>
-        <button
-          className={view === "week" ? "active" : ""}
-          onClick={() => setView("week")}
-        >
-          Week
-        </button>
-        <button
-          className={view === "month" ? "active" : ""}
-          onClick={() => setView("month")}
-        >
-          Month
-        </button>
-      </div>
-      <p>{today}</p>
-      <div className="checklist">
-        {checklistItems.map((item, index) => (
-          <div key={index}>
-            <input
-              type="checkbox"
-              checked={checkedItems[index]}
-              onChange={() => {
-                const newItems = [...checkedItems];
-                newItems[index] = !newItems[index];
-                setCheckedItems(newItems);
-              }}
-            />
-            <label>{item.label}</label>
-          </div>
+        {["Today", "Week", "Month"].map((view) => (
+          <button
+            key={view}
+            className={selectedView === view ? "active" : ""}
+            onClick={() => setSelectedView(view)}
+          >
+            {view}
+          </button>
         ))}
       </div>
-      <p>Score: {totalScore}/100 ({grade})</p>
+      <div>{date}</div>
+      <ul>
+        {checklistItems.map((item, i) => (
+          <li key={i}>
+            <input
+              type="checkbox"
+              checked={checked[i]}
+              onChange={() => handleCheck(i)}
+            />
+            {item}
+          </li>
+        ))}
+      </ul>
+      <div className="score">Score: {score}/100 ({getGrade(score)})</div>
       <button
+        className={`submit-button ${submitted ? "submitted" : ""}`}
         onClick={handleSubmit}
-        className={submissionStatus === "submitted" ? "submitted" : ""}
       >
-        {submissionStatus === "submitted" ? "Submitted!" : "Submit"}
+        {submitted ? "Submitted!" : "Submit"}
       </button>
     </div>
   );
