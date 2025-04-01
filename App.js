@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import {
@@ -10,7 +11,8 @@ import {
   orderBy,
 } from "firebase/firestore";
 import "./App.css";
-console.log("✅ This is the correct App.js");
+
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyC966X_9sp3JP64U_VPkCY-7Km7Oh6MB9I",
   authDomain: "daily100-ce649.firebaseapp.com",
@@ -24,6 +26,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Tasks
 const TASKS = [
   { name: "Slept > 8 hours", value: 5 },
   { name: "Stretch", value: 5 },
