@@ -81,6 +81,8 @@ export default function App() {
     setChecked((prev) => ({ ...prev, [task.label]: !prev[task.label] }));
   };
 
+const [submitted, setSubmitted] = useState(false);
+
 const handleSubmit = async () => {
   const docRef = doc(db, "scores", dateString);
   await setDoc(docRef, {
@@ -88,6 +90,17 @@ const handleSubmit = async () => {
     score,
     grade: getGrade(score),
   });
+
+  // Refresh entries
+  const q = collection(db, "scores");
+  const snapshot = await getDocs(q);
+  const all = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  setEntries(all);
+
+  // Show visual feedback
+  setSubmitted(true);
+  setTimeout(() => setSubmitted(false), 2000);
+};
 
   // Re-fetch the updated scores after submission
   const q = collection(db, "scores");
@@ -116,9 +129,12 @@ const handleSubmit = async () => {
       <div className="score">
         Score: {score}/100 ({getGrade(score)})
       </div>
-      <button onClick={handleSubmit}>Submit</button>
-    </>
-  );
+    <button
+  onClick={handleSubmit}
+  className={submitted ? "submitted" : ""}
+>
+  {submitted ? "Submitted ✅" : "Submit"}
+</button>
 
   const renderMonth = () => {
     const currentMonth = today.getMonth();
