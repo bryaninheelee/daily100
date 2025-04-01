@@ -1,76 +1,81 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-body {
+.App {
   font-family: sans-serif;
-  padding: 1rem;
-  background: white;
-  color: black;
+  padding: 2rem;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: bold;
   margin-bottom: 1rem;
 }
 
-nav {
+.nav {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-nav button {
-  background-color: black;
-  color: white;
-  border-radius: 9999px;
+.nav button {
   padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background-color: #000;
+  color: white;
+  cursor: pointer;
   font-weight: 500;
 }
 
-nav button.active {
-  background-color: #1e40af; /* blue-900 */
+.date {
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.25rem;
-  font-size: 0.95rem;
-}
-
-input[type="checkbox"] {
-  transform: scale(1.2);
 }
 
 .score {
-  margin-top: 1rem;
   font-weight: bold;
+  margin: 1rem 0;
 }
 
-.submitted-message {
-  background-color: #4ade80; /* green-400 */
-  color: white;
+button {
   padding: 0.5rem 1rem;
+  background-color: #000;
+  color: white;
+  border: none;
   border-radius: 0.5rem;
-  margin-top: 0.5rem;
-  display: inline-block;
+  cursor: pointer;
 }
 
-button[type="submit"] {
-  background-color: black;
-  color: white;
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.75rem;
   margin-top: 1rem;
-  padding: 0.5rem 1rem;
+}
+
+.calendar-day {
+  background: #f3f3f3;
+  padding: 0.5rem;
   border-radius: 0.5rem;
+  text-align: center;
+  font-size: 0.8rem;
 }
 
-button[type="submit"]:hover {
-  background-color: #111;
-}
-
-button[type="submit"].submitted {
-  background-color: #4ade80;
+/* ✅ Highlight submit button after success */
+button.submitted {
+  background-color: #4caf50 !important;
+  transition: background-color 0.3s ease;
 }
