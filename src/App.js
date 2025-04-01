@@ -52,10 +52,20 @@ function getGrade(score) {
   return "F";
 }
 
+function formatDate(date) {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric"
+  });
+}
+
 function App() {
   const [checked, setChecked] = useState([]);
   const [score, setScore] = useState(0);
   const [history, setHistory] = useState([]);
+  const [view, setView] = useState("today");
+  const [today] = useState(new Date());
 
   useEffect(() => {
     const total = checked.reduce((acc, index) => acc + TASKS[index].value, 0);
@@ -88,14 +98,27 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white p-4 max-w-xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Daily100</h1>
-      <div className="mb-6">
-        {TASKS.map((task, index) => (
-          <label
-            key={index}
-            className="flex items-center py-2 border-b border-gray-200"
+    <div className="min-h-screen bg-white p-4 max-w-xl mx-auto text-black">
+      <h1 className="text-3xl font-bold mb-2">Daily100</h1>
+      <div className="text-sm text-gray-600 mb-4">{formatDate(today)}</div>
+
+      <div className="flex justify-between mb-4">
+        {["today", "week", "month"].map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-4 py-2 rounded-full ${
+              view === v ? "bg-black text-white" : "bg-gray-200 text-black"
+            }`}
           >
+            {v.charAt(0).toUpperCase() + v.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-6 space-y-2">
+        {TASKS.map((task, index) => (
+          <label key={index} className="flex items-center">
             <input
               type="checkbox"
               className="mr-3 h-5 w-5"
@@ -113,12 +136,12 @@ function App() {
 
       <button
         onClick={submitScore}
-        className="bg-black text-white py-2 px-4 rounded-full"
+        className="bg-black text-white py-2 px-4 rounded-full mb-8"
       >
         Submit
       </button>
 
-      <div className="mt-8">
+      <div className="mt-4">
         <h2 className="text-2xl font-bold mb-2">History</h2>
         <ul>
           {history.map((entry, idx) => (
