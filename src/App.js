@@ -3,174 +3,127 @@ import "./App.css";
 import { db } from "./firebase";
 import {
   collection,
-  addDoc,
+  doc,
+  setDoc,
   getDocs,
   query,
   where,
 } from "firebase/firestore";
 
 const checklistItems = [
-  "Slept > 8 hours",
-  "Stretch",
-  "Pray",
-  "Gym",
-  "Yoga",
-  "Run",
-  "Journal",
-  "Read > 10 pages",
-  "Call home",
-  "Cook",
-  "Clean",
-  "Practice German",
-  "Practice music",
-  "Write content",
-  "Create content",
-  "Meditate",
-  "Screen time < 4 hours",
+  { label: "Slept > 8 hours", weight: 5 },
+  { label: "Stretch", weight: 5 },
+  { label: "Pray", weight: 1 },
+  { label: "Gym", weight: 5 },
+  { label: "Yoga", weight: 5 },
+  { label: "Run", weight: 5 },
+  { label: "Journal", weight: 1 },
+  { label: "Read > 10 pages", weight: 10 },
+  { label: "Call home", weight: 1 },
+  { label: "Cook", weight: 1 },
+  { label: "Clean", weight: 5 },
+  { label: "Practice German", weight: 20 },
+  { label: "Practice music", weight: 5 },
+  { label: "Write content", weight: 10 },
+  { label: "Create content", weight: 10 },
+  { label: "Meditate", weight: 1 },
+  { label: "Screen time < 4 hours", weight: 10 },
 ];
 
 const getGrade = (score) => {
-  if (score === 100) return "A+";
-  if (score >= 95) return "A";
-  if (score >= 90) return "A-";
-  if (score >= 85) return "B+";
+  if (score >= 90) return "A";
   if (score >= 80) return "B";
-  if (score >= 75) return "B-";
-  if (score >= 70) return "C+";
-  if (score >= 65) return "C";
-  if (score >= 60) return "C-";
-  if (score >= 50) return "D";
+  if (score >= 70) return "C";
+  if (score >= 60) return "D";
   return "F";
 };
 
 function App() {
-  const [checkedItems, setCheckedItems] = useState([]);
   const [view, setView] = useState("today");
-  const [history, setHistory] = useState([]);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [checkedItems, setCheckedItems] = useState(
+    Array(checklistItems.length).fill(false)
+  );
+  const [submissionStatus, setSubmissionStatus] = useState(null);
   const today = new Date().toISOString().split("T")[0];
-
-  const handleCheckboxChange = (item) => {
-    setCheckedItems((prev) =>
-      prev.includes(item)
-        ? prev.filter((i) => i !== item)
-        : [...prev, item]
-    );
-  };
-
-  const totalScore = Math.round((checkedItems.length / checklistItems.length) * 100);
-
-  const handleSubmit = async () => {
-    try {
-      await addDoc(collection(db, "scores"), {
-        date: today,
-        score: totalScore,
-        grade: getGrade(totalScore),
-      });
-      setIsSubmitted(true);
-    } catch (error) {
-      console.error("Error saving score:", error);
-    }
-  };
-
-  const fetchScores = async () => {
-    try {
-      const q = query(collection(db, "scores"));
-      const querySnapshot = await getDocs(q);
-      const results = querySnapshot.docs.map((doc) => doc.data());
-      setHistory(results);
-    } catch (error) {
-      console.error("Error fetching scores:", error);
-    }
-  };
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    fetchScores();
-  }, []);
+    const fetchData = async () => {
+      const q = query(collection(db, "scores"), where("date", "==", today));
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map((doc) => doc.data());
+      setHistory(data);
+    };
+    fetchData();
+  }, [view]);
 
-  const todayData = history.find((entry) => entry.date === today);
-  const monthData = history.filter(
-    (entry) => entry.date && entry.date.slice(0, 7) === today.slice(0, 7)
-  );
-  const weekData = history.filter((entry) => {
-    const entryDate = new Date(entry.date);
-    const todayDate = new Date(today);
-    const diff = (todayDate - entryDate) / (1000 * 60 * 60 * 24);
-    return diff >= 0 && diff < 7;
-  });
+  const handleSubmit = async () => {
+    const score = checkedItems.reduce(
+      (total, checked, index) =>
+        total + (checked ? checklistItems[index].weight : 0),
+      0
+    );
 
-  const average = (data) => {
-    if (data.length === 0) return 0;
-    const total = data.reduce((sum, entry) => sum + (entry.score || 0), 0);
-    return Math.round(total / data.length);
+    const grade = getGrade(score);
+    const docRef = doc(db, "scores", today);
+    await setDoc(docRef, { date: today, score, grade });
+    setSubmissionStatus("submitted");
   };
 
+  const totalScore = checkedItems.reduce(
+    (total, checked, index) =>
+      total + (checked ? checklistItems[index].weight : 0),
+    0
+  );
+  const grade = getGrade(totalScore);
+
   return (
-    <div className="App">
+    <div className="app-container">
       <h1>Daily100</h1>
-
-      <div className="nav-buttons">
-        <button onClick={() => setView("today")}>Today</button>
-        <button onClick={() => setView("week")}>Week</button>
-        <button onClick={() => setView("month")}>Month</button>
+      <div className="nav">
+        <button
+          className={view === "today" ? "active" : ""}
+          onClick={() => setView("today")}
+        >
+          Today
+        </button>
+        <button
+          className={view === "week" ? "active" : ""}
+          onClick={() => setView("week")}
+        >
+          Week
+        </button>
+        <button
+          className={view === "month" ? "active" : ""}
+          onClick={() => setView("month")}
+        >
+          Month
+        </button>
       </div>
-
-      {view === "today" && (
-        <>
-          <p className="date-display">{today}</p>
-          <div className="checklist">
-            {checklistItems.map((item) => (
-              <label key={item}>
-                <input
-                  type="checkbox"
-                  checked={checkedItems.includes(item)}
-                  onChange={() => handleCheckboxChange(item)}
-                />
-                {item}
-              </label>
-            ))}
+      <p>{today}</p>
+      <div className="checklist">
+        {checklistItems.map((item, index) => (
+          <div key={index}>
+            <input
+              type="checkbox"
+              checked={checkedItems[index]}
+              onChange={() => {
+                const newItems = [...checkedItems];
+                newItems[index] = !newItems[index];
+                setCheckedItems(newItems);
+              }}
+            />
+            <label>{item.label}</label>
           </div>
-          <p>
-            Score: {totalScore}/100 ({getGrade(totalScore)})
-          </p>
-          <button
-            className={`submit-button ${isSubmitted ? "submitted" : ""}`}
-            onClick={handleSubmit}
-          >
-            {isSubmitted ? "Submitted!" : "Submit"}
-          </button>
-        </>
-      )}
-
-      {view === "week" && (
-        <div className="calendar-view">
-          {weekData.map((entry) => (
-            <div key={entry.date} className="calendar-cell">
-              <p className="cell-date">{entry.date}</p>
-              <p className="cell-score">{entry.score}/100</p>
-              <p className="cell-grade">{entry.grade}</p>
-            </div>
-          ))}
-          <p className="average-score">
-            Weekly Average: {average(weekData)}/100 ({getGrade(average(weekData))})
-          </p>
-        </div>
-      )}
-
-      {view === "month" && (
-        <div className="calendar-view">
-          {monthData.map((entry) => (
-            <div key={entry.date} className="calendar-cell">
-              <p className="cell-date">{entry.date}</p>
-              <p className="cell-score">{entry.score}/100</p>
-              <p className="cell-grade">{entry.grade}</p>
-            </div>
-          ))}
-          <p className="average-score">
-            Monthly Average: {average(monthData)}/100 ({getGrade(average(monthData))})
-          </p>
-        </div>
-      )}
+        ))}
+      </div>
+      <p>Score: {totalScore}/100 ({grade})</p>
+      <button
+        onClick={handleSubmit}
+        className={submissionStatus === "submitted" ? "submitted" : ""}
+      >
+        {submissionStatus === "submitted" ? "Submitted!" : "Submit"}
+      </button>
     </div>
   );
 }
