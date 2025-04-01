@@ -81,14 +81,22 @@ export default function App() {
     setChecked((prev) => ({ ...prev, [task.label]: !prev[task.label] }));
   };
 
-  const handleSubmit = async () => {
-    const docRef = doc(db, "scores", dateString);
-    await setDoc(docRef, {
-      date: dateString,
-      score,
-      grade: getGrade(score),
-    });
-  };
+const handleSubmit = async () => {
+  const docRef = doc(db, "scores", dateString);
+  await setDoc(docRef, {
+    date: dateString,
+    score,
+    grade: getGrade(score),
+  });
+
+  // Re-fetch the updated scores after submission
+  const q = collection(db, "scores");
+  const snapshot = await getDocs(q);
+  const all = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  setEntries(all);
+
+  console.log("✅ Score submitted and reloaded.");
+};
 
   const renderToday = () => (
     <>
