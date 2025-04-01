@@ -1,28 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { db } from "./firebase";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 import "./App.css";
-import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  setDoc,
-  doc,
-} from "firebase/firestore";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC966X_9sp3JP64U_VPkCY-7Km7Oh6MB9I",
-  authDomain: "daily100-ce649.firebaseapp.com",
-  projectId: "daily100-ce649",
-  storageBucket: "daily100-ce649.appspot.com",
-  messagingSenderId: "513528993358",
-  appId: "1:513528993358:web:e27a209b56f45d347a151f",
-  measurementId: "G-DG94LKCL6E"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const tasks = [
+const checklistItems = [
   { label: "Slept > 8 hours", weight: 5 },
   { label: "Stretch", weight: 5 },
   { label: "Pray", weight: 1 },
@@ -42,134 +23,144 @@ const tasks = [
   { label: "Screen time < 4 hours", weight: 10 },
 ];
 
-function getGrade(score) {
+const getGrade = (score) => {
   if (score >= 90) return "A";
   if (score >= 80) return "B";
   if (score >= 70) return "C";
   if (score >= 60) return "D";
   return "F";
-}
+};
 
-export default function App() {
-  const [view, setView] = useState("Today");
-  const [checked, setChecked] = useState({});
+function App() {
+  const [checked, setChecked] = useState(Array(checklistItems.length).fill(false));
   const [score, setScore] = useState(0);
-  const [today, setToday] = useState(new Date());
-  const [entries, setEntries] = useState([]);
+  const [grade, setGrade] = useState("F");
+  const [view, setView] = useState("today");
+  const [data, setData] = useState([]);
+  const [submitted, setSubmitted] = useState(false);
 
-  const dateString = today.toISOString().split("T")[0];
+  const today = new Date().toISOString().split("T")[0];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const q = collection(db, "scores");
-      const snapshot = await getDocs(q);
-      const all = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setEntries(all);
-    };
-    fetchData();
-  }, [score]);
-
-  useEffect(() => {
-    let newScore = 0;
-    tasks.forEach((task) => {
-      if (checked[task.label]) newScore += task.weight;
+  const calculateScore = (checked) => {
+    let total = 0;
+    checked.forEach((isChecked, i) => {
+      if (isChecked) total += checklistItems[i].weight;
     });
-    setScore(newScore);
-  }, [checked]);
+    return total;
+  };
 
-  const handleCheck = (task) => {
-    setChecked((prev) => ({ ...prev, [task.label]: !prev[task.label] }));
+  const handleCheckboxChange = (index) => {
+    const newChecked = [...checked];
+    newChecked[index] = !newChecked[index];
+    setChecked(newChecked);
+    const newScore = calculateScore(newChecked);
+    setScore(newScore);
+    setGrade(getGrade(newScore));
   };
 
   const handleSubmit = async () => {
-    const docRef = doc(db, "scores", dateString);
-    await setDoc(docRef, {
-      date: dateString,
-      score,
-      grade: getGrade(score),
+    const newScore = calculateScore(checked);
+    const grade = getGrade(newScore);
+    await addDoc(collection(db, "scores"), {
+      date: today,
+      score: newScore,
+      grade,
     });
+    setSubmitted(true);
+    setTimeout(() => setSubmitted(false), 2000);
   };
 
-  const renderToday = () => (
-    <>
-      <div className="date">{dateString}</div>
-      <div className="checklist">
-        {tasks.map((task) => (
-          <label key={task.label}>
-            <input
-              type="checkbox"
-              checked={checked[task.label] || false}
-              onChange={() => handleCheck(task)}
-            />
-            {task.label}
-          </label>
-        ))}
-      </div>
-      <div className="score">
-        Score: {score}/100 ({getGrade(score)})
-      </div>
-      <button onClick={handleSubmit}>Submit</button>
-    </>
-  );
-
-  const renderMonth = () => {
-    const currentMonth = today.getMonth();
-    const filtered = entries.filter(
-      (e) => new Date(e.date).getMonth() === currentMonth
+  const loadScores = async () => {
+    const snapshot = await getDocs(collection(db, "scores"));
+    const docs = snapshot.docs.map((doc) => doc.data());
+    const filtered = Object.values(
+      docs.reduce((acc, curr) => {
+        acc[curr.date] = curr;
+        return acc;
+      }, {})
     );
-    return (
-      <div className="calendar-grid">
-        {filtered.map((entry) => (
-          <div key={entry.date} className="calendar-day">
-            <div>{entry.date.slice(5)}</div>
-            <div>{entry.score}</div>
-            <div>{entry.grade}</div>
-          </div>
-        ))}
-      </div>
-    );
+    setData(filtered);
   };
 
-  const renderWeek = () => {
-    const todayTime = today.getTime();
-    const last7Days = entries.filter((entry) => {
-      const entryTime = new Date(entry.date).getTime();
-      return todayTime - entryTime <= 7 * 24 * 60 * 60 * 1000;
-    });
+  useEffect(() => {
+    loadScores();
+  }, []);
 
-    const avgScore =
-      last7Days.reduce((sum, e) => sum + (e.score || 0), 0) /
-        last7Days.length || 0;
+  const renderScores = () => {
+    const now = new Date();
+    let filtered = data;
+
+    if (view === "week") {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(now.getDate() - 7);
+      filtered = data.filter((item) => new Date(item.date) >= weekAgo);
+    } else if (view === "month") {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(now.getMonth() - 1);
+      filtered = data.filter((item) => new Date(item.date) >= monthAgo);
+    } else {
+      return null;
+    }
+
+    const average =
+      filtered.reduce((sum, entry) => sum + entry.score, 0) / filtered.length || 0;
+    const averageGrade = getGrade(Math.round(average));
 
     return (
-      <>
-        <div className="score">
-          Weekly Avg: {Math.round(avgScore)}/100 ({getGrade(avgScore)})
-        </div>
-        <div className="calendar-grid">
-          {last7Days.map((entry) => (
-            <div key={entry.date} className="calendar-day">
-              <div>{entry.date.slice(5)}</div>
-              <div>{entry.score}</div>
-              <div>{entry.grade}</div>
-            </div>
-          ))}
-        </div>
-      </>
+      <div className="mt-4 space-y-1">
+        {filtered.map((entry, i) => (
+          <div key={i}>{entry.date} - {entry.score} ({entry.grade})</div>
+        ))}
+        <div className="font-semibold mt-2">Average: {Math.round(average)} ({averageGrade})</div>
+      </div>
     );
   };
 
   return (
-    <div className="App">
-      <h1>Daily100</h1>
-      <div className="nav">
-        <button onClick={() => setView("Today")}>Today</button>
-        <button onClick={() => setView("Week")}>Week</button>
-        <button onClick={() => setView("Month")}>Month</button>
+    <div className="p-4 max-w-md mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Daily100</h1>
+      <div className="flex gap-2 mb-4">
+        {['today', 'week', 'month'].map((v) => (
+          <button
+            key={v}
+            className={`px-3 py-1 rounded text-white ${view === v ? 'bg-black' : 'bg-gray-600'}`}
+            onClick={() => setView(v)}
+          >
+            {v.charAt(0).toUpperCase() + v.slice(1)}
+          </button>
+        ))}
       </div>
-      {view === "Today" && renderToday()}
-      {view === "Week" && renderWeek()}
-      {view === "Month" && renderMonth()}
+
+      {view === "today" && (
+        <>
+          <div className="mb-2 text-sm">{today}</div>
+          <div className="space-y-2">
+            {checklistItems.map((item, i) => (
+              <label key={i} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={checked[i]}
+                  onChange={() => handleCheckboxChange(i)}
+                />
+                {item.label}
+              </label>
+            ))}
+          </div>
+          <div className="mt-4 font-semibold">
+            Score: {score}/100 ({grade})
+          </div>
+          <button
+            onClick={handleSubmit}
+            className={`mt-2 px-4 py-1 rounded text-white ${submitted ? 'bg-green-600' : 'bg-black'}`}
+          >
+            {submitted ? "Submitted!" : "Submit"}
+          </button>
+        </>
+      )}
+
+      {view !== "today" && renderScores()}
     </div>
   );
 }
+
+export default App;
