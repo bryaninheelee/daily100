@@ -4,14 +4,11 @@ import { initializeApp } from "firebase/app";
 import {
   getFirestore,
   collection,
-  addDoc,
+  setDoc,
   getDocs,
+  doc,
   query,
   orderBy,
-  where,
-  getDoc,
-  setDoc,
-  doc
 } from "firebase/firestore";
 import "./App.css";
 
@@ -80,7 +77,11 @@ function App() {
     const fetchHistory = async () => {
       const q = query(collection(db, "scores"), orderBy("date", "desc"));
       const querySnapshot = await getDocs(q);
-      setHistory(querySnapshot.docs.map((doc) => doc.data()));
+      const data = querySnapshot.docs.map((docSnap) => ({
+        ...docSnap.data(),
+        date: docSnap.id, // use doc ID as date
+      }));
+      setHistory(data);
     };
     fetchHistory();
   }, []);
@@ -95,11 +96,15 @@ function App() {
     const todayStr = new Date().toISOString().split("T")[0];
     const scoreRef = doc(db, "scores", todayStr);
     await setDoc(scoreRef, {
-      date: todayStr,
       score,
       grade: getGrade(score),
     });
     alert("Score saved!");
+    // Update history right away
+    setHistory((prev) => {
+      const filtered = prev.filter((entry) => entry.date !== todayStr);
+      return [{ date: todayStr, score, grade: getGrade(score) }, ...filtered];
+    });
   };
 
   const getFilteredScores = () => {
