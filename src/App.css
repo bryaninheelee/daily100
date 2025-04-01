@@ -1,82 +1,62 @@
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: Arial, sans-serif;
   margin: 0;
   padding: 1rem;
   background-color: white;
   color: black;
 }
 
-button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  background-color: black;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-  margin-right: 10px;
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
 }
 
-button.active {
-  background-color: black;
-  color: white;
+nav {
+  margin-bottom: 1rem;
 }
 
-button.submitted {
-  background-color: #4CAF50; /* green */
-  color: white;
-}
-
-input[type="checkbox"] {
+nav button {
   margin-right: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  background-color: black;
+  color: white;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-label {
+nav button.active {
+  background-color: #333;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+
+.checklist label {
   display: flex;
   align-items: center;
-  margin: 4px 0;
+  font-size: 1rem;
 }
 
-.toggle-buttons {
+.score-display {
+  font-weight: bold;
   margin: 1rem 0;
 }
 
-.week-view,
-.month-view {
-  margin-top: 2rem;
+button.submit {
+  background-color: black;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.calendar-cell {
-  padding: 0.5rem;
-  text-align: center;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.calendar-cell.F {
-  background-color: #ffdddd;
-}
-
-.calendar-cell.D {
-  background-color: #ffe0b2;
-}
-
-.calendar-cell.C {
-  background-color: #fff9c4;
-}
-
-.calendar-cell.B {
-  background-color: #c8e6c9;
-}
-
-.calendar-cell.A {
-  background-color: #a5d6a7;
+button.submit.submitted {
+  background-color: #4caf50;
 }
