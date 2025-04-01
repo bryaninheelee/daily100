@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { db } from "./firebase";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc
+} from "firebase/firestore";
 import "./App.css";
 
 const checklistItems = [
@@ -61,13 +66,16 @@ function App() {
   const handleSubmit = async () => {
     const newScore = calculateScore(checked);
     const grade = getGrade(newScore);
-    await addDoc(collection(db, "scores"), {
+
+    await setDoc(doc(db, "scores", today), {
       date: today,
       score: newScore,
       grade,
     });
+
     setSubmitted(true);
     setTimeout(() => setSubmitted(false), 2000);
+    loadScores();
   };
 
   const loadScores = async () => {
@@ -109,9 +117,13 @@ function App() {
     return (
       <div className="mt-4 space-y-1">
         {filtered.map((entry, i) => (
-          <div key={i}>{entry.date} - {entry.score} ({entry.grade})</div>
+          <div key={i}>
+            {entry.date} - {entry.score} ({entry.grade})
+          </div>
         ))}
-        <div className="font-semibold mt-2">Average: {Math.round(average)} ({averageGrade})</div>
+        <div className="font-semibold mt-2">
+          Average: {Math.round(average)} ({averageGrade})
+        </div>
       </div>
     );
   };
@@ -120,10 +132,12 @@ function App() {
     <div className="p-4 max-w-md mx-auto">
       <h1 className="text-2xl font-bold mb-4">Daily100</h1>
       <div className="flex gap-2 mb-4">
-        {['today', 'week', 'month'].map((v) => (
+        {["today", "week", "month"].map((v) => (
           <button
             key={v}
-            className={`px-3 py-1 rounded text-white ${view === v ? 'bg-black' : 'bg-gray-600'}`}
+            className={`px-3 py-1 rounded text-white ${
+              view === v ? "bg-black" : "bg-gray-600"
+            }`}
             onClick={() => setView(v)}
           >
             {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -151,7 +165,9 @@ function App() {
           </div>
           <button
             onClick={handleSubmit}
-            className={`mt-2 px-4 py-1 rounded text-white ${submitted ? 'bg-green-600' : 'bg-black'}`}
+            className={`mt-2 px-4 py-1 rounded text-white ${
+              submitted ? "bg-green-600" : "bg-black"
+            }`}
           >
             {submitted ? "Submitted!" : "Submit"}
           </button>
