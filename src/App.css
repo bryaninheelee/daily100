@@ -74,7 +74,7 @@ button {
   font-size: 0.8rem;
 }
 
-/* ✅ New: Submit success feedback */
+/* ✅ Highlight submit button after success */
 button.submitted {
   background-color: #4caf50 !important;
   transition: background-color 0.3s ease;
