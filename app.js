@@ -1,1 +1,0 @@
-console.log('Daily100 loaded');
