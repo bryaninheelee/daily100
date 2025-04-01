@@ -1,81 +1,74 @@
-.App {
-  font-family: sans-serif;
-  padding: 2rem;
-  max-width: 600px;
-  margin: 0 auto;
+/* src/App.css */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  padding: 20px;
+  margin: 0;
+  background-color: #ffffff;
+  color: #000000;
 }
 
 h1 {
-  font-size: 1.75rem;
+  font-size: 28px;
   font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.nav {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.nav button {
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  border: none;
-  background-color: #000;
-  color: white;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.date {
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.checklist {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.score {
-  font-weight: bold;
-  margin: 1rem 0;
+  margin-bottom: 20px;
 }
 
 button {
-  padding: 0.5rem 1rem;
-  background-color: #000;
+  background-color: black;
   color: white;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-right: 8px;
+  font-size: 14px;
   cursor: pointer;
 }
 
-.calendar-grid {
+button.active {
+  background-color: #333;
+}
+
+.checklist {
+  margin-top: 20px;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.75rem;
-  margin-top: 1rem;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
-.calendar-day {
-  background: #f3f3f3;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  text-align: center;
-  font-size: 0.8rem;
+.checklist-item {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
 }
 
-/* ✅ Highlight submit button after success */
-button.submitted {
-  background-color: #4caf50 !important;
-  transition: background-color 0.3s ease;
+.checklist-item input {
+  margin-right: 10px;
+}
+
+.score {
+  margin-top: 20px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+button.submit {
+  margin-top: 10px;
+  background-color: #4caf50;
+  color: white;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+button.submit.submitted {
+  background-color: #4caf50;
+}
+
+.date {
+  margin: 10px 0;
+  font-size: 14px;
 }
