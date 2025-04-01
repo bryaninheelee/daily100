@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import {
@@ -12,7 +11,8 @@ import {
 } from "firebase/firestore";
 import "./App.css";
 
-// Firebase config
+console.log("✅ This is the correct App.js"); // PROOF THIS FILE IS LIVE
+
 const firebaseConfig = {
   apiKey: "AIzaSyC966X_9sp3JP64U_VPkCY-7Km7Oh6MB9I",
   authDomain: "daily100-ce649.firebaseapp.com",
@@ -26,7 +26,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Tasks
 const TASKS = [
   { name: "Slept > 8 hours", value: 5 },
   { name: "Stretch", value: 5 },
@@ -91,7 +90,7 @@ function App() {
 
   const submitScore = async () => {
     const todayStr = new Date().toISOString().split("T")[0];
-    const scoreRef = doc(db, "scores", todayStr);
+    const scoreRef = doc(db, "scores", todayStr); // ✅ overwrite or create based on date
     await setDoc(scoreRef, {
       score,
       grade: getGrade(score),
