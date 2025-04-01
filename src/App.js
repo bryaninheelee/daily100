@@ -1,16 +1,13 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
+import { initializeApp } from "firebase/app";
 import {
   getFirestore,
   collection,
-  query,
-  where,
   getDocs,
-  addDoc,
-  updateDoc,
+  setDoc,
   doc,
 } from "firebase/firestore";
-import { initializeApp } from "firebase/app";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC966X_9sp3JP64U_VPkCY-7Km7Oh6MB9I",
@@ -19,7 +16,7 @@ const firebaseConfig = {
   storageBucket: "daily100-ce649.appspot.com",
   messagingSenderId: "513528993358",
   appId: "1:513528993358:web:e27a209b56f45d347a151f",
-  measurementId: "G-DG94LKCL6E",
+  measurementId: "G-DG94LKCL6E"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -64,7 +61,7 @@ export default function App() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const q = query(collection(db, "scores"));
+      const q = collection(db, "scores");
       const snapshot = await getDocs(q);
       const all = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setEntries(all);
@@ -84,16 +81,14 @@ export default function App() {
     setChecked((prev) => ({ ...prev, [task.label]: !prev[task.label] }));
   };
 
- import { setDoc, doc } from "firebase/firestore"; // update this import
-
-const handleSubmit = async () => {
-  const docRef = doc(db, "scores", dateString);
-  await setDoc(docRef, {
-    date: dateString,
-    score,
-    grade: getGrade(score),
-  });
-};
+  const handleSubmit = async () => {
+    const docRef = doc(db, "scores", dateString);
+    await setDoc(docRef, {
+      date: dateString,
+      score,
+      grade: getGrade(score),
+    });
+  };
 
   const renderToday = () => (
     <>
@@ -143,7 +138,8 @@ const handleSubmit = async () => {
     });
 
     const avgScore =
-      last7Days.reduce((sum, e) => sum + (e.score || 0), 0) / last7Days.length || 0;
+      last7Days.reduce((sum, e) => sum + (e.score || 0), 0) /
+        last7Days.length || 0;
 
     return (
       <>
