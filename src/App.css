@@ -1,74 +1,60 @@
-/* src/App.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  padding: 20px;
-  margin: 0;
-  background-color: #ffffff;
-  color: #000000;
+  @apply bg-white text-black font-sans p-4;
 }
 
 h1 {
-  font-size: 28px;
-  font-weight: bold;
-  margin-bottom: 20px;
+  @apply text-3xl font-bold mb-4;
 }
 
 button {
-  background-color: black;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  margin-right: 8px;
-  font-size: 14px;
-  cursor: pointer;
+  @apply px-4 py-2 rounded-md font-semibold transition-colors duration-200;
 }
 
 button.active {
-  background-color: #333;
+  @apply bg-black text-white;
+}
+
+button.inactive {
+  @apply bg-gray-200 text-black;
 }
 
 .checklist {
-  margin-top: 20px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+  @apply flex flex-col gap-2 mb-4;
 }
 
-.checklist-item {
-  display: flex;
-  align-items: center;
-  font-size: 16px;
-}
-
-.checklist-item input {
-  margin-right: 10px;
+.checklist label {
+  @apply flex items-center gap-2;
 }
 
 .score {
-  margin-top: 20px;
-  font-size: 16px;
-  font-weight: bold;
+  @apply font-bold mt-2;
 }
 
-button.submit {
-  margin-top: 10px;
-  background-color: #4caf50;
-  color: white;
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
+.submit-button {
+  @apply mt-4 px-4 py-2 rounded bg-black text-white hover:bg-green-600 transition duration-200;
 }
 
-button.submit.submitted {
-  background-color: #4caf50;
+.submitted {
+  @apply bg-green-600;
 }
 
-.date {
-  margin: 10px 0;
-  font-size: 14px;
+.toggle-buttons {
+  @apply flex gap-2 mb-4;
+}
+
+.calendar-table {
+  @apply table-auto w-full text-left mt-4;
+}
+
+.calendar-table th,
+.calendar-table td {
+  @apply px-2 py-1;
+}
+
+.calendar-table thead {
+  @apply font-semibold;
 }
