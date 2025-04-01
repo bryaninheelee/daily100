@@ -1,16 +1,28 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import "./App.css";
-import { db } from "./firebase";
+import { initializeApp } from "firebase/app";
 import {
+  getFirestore,
   collection,
-  doc,
-  setDoc,
   getDocs,
-  query,
-  where,
+  setDoc,
+  doc,
 } from "firebase/firestore";
 
-const checklistItems = [
+const firebaseConfig = {
+  apiKey: "AIzaSyC966X_9sp3JP64U_VPkCY-7Km7Oh6MB9I",
+  authDomain: "daily100-ce649.firebaseapp.com",
+  projectId: "daily100-ce649",
+  storageBucket: "daily100-ce649.appspot.com",
+  messagingSenderId: "513528993358",
+  appId: "1:513528993358:web:e27a209b56f45d347a151f",
+  measurementId: "G-DG94LKCL6E"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const tasks = [
   { label: "Slept > 8 hours", weight: 5 },
   { label: "Stretch", weight: 5 },
   { label: "Pray", weight: 1 },
@@ -30,102 +42,134 @@ const checklistItems = [
   { label: "Screen time < 4 hours", weight: 10 },
 ];
 
-const getGrade = (score) => {
+function getGrade(score) {
   if (score >= 90) return "A";
   if (score >= 80) return "B";
   if (score >= 70) return "C";
   if (score >= 60) return "D";
   return "F";
-};
+}
 
-function App() {
-  const [view, setView] = useState("today");
-  const [checkedItems, setCheckedItems] = useState(
-    Array(checklistItems.length).fill(false)
-  );
-  const [submissionStatus, setSubmissionStatus] = useState(null);
-  const today = new Date().toISOString().split("T")[0];
-  const [history, setHistory] = useState([]);
+export default function App() {
+  const [view, setView] = useState("Today");
+  const [checked, setChecked] = useState({});
+  const [score, setScore] = useState(0);
+  const [today, setToday] = useState(new Date());
+  const [entries, setEntries] = useState([]);
+
+  const dateString = today.toISOString().split("T")[0];
 
   useEffect(() => {
     const fetchData = async () => {
-      const q = query(collection(db, "scores"), where("date", "==", today));
-      const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map((doc) => doc.data());
-      setHistory(data);
+      const q = collection(db, "scores");
+      const snapshot = await getDocs(q);
+      const all = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setEntries(all);
     };
     fetchData();
-  }, [view]);
+  }, [score]);
 
-  const handleSubmit = async () => {
-    const score = checkedItems.reduce(
-      (total, checked, index) =>
-        total + (checked ? checklistItems[index].weight : 0),
-      0
-    );
+  useEffect(() => {
+    let newScore = 0;
+    tasks.forEach((task) => {
+      if (checked[task.label]) newScore += task.weight;
+    });
+    setScore(newScore);
+  }, [checked]);
 
-    const grade = getGrade(score);
-    const docRef = doc(db, "scores", today);
-    await setDoc(docRef, { date: today, score, grade });
-    setSubmissionStatus("submitted");
+  const handleCheck = (task) => {
+    setChecked((prev) => ({ ...prev, [task.label]: !prev[task.label] }));
   };
 
-  const totalScore = checkedItems.reduce(
-    (total, checked, index) =>
-      total + (checked ? checklistItems[index].weight : 0),
-    0
-  );
-  const grade = getGrade(totalScore);
+  const handleSubmit = async () => {
+    const docRef = doc(db, "scores", dateString);
+    await setDoc(docRef, {
+      date: dateString,
+      score,
+      grade: getGrade(score),
+    });
+  };
 
-  return (
-    <div className="app-container">
-      <h1>Daily100</h1>
-      <div className="nav">
-        <button
-          className={view === "today" ? "active" : ""}
-          onClick={() => setView("today")}
-        >
-          Today
-        </button>
-        <button
-          className={view === "week" ? "active" : ""}
-          onClick={() => setView("week")}
-        >
-          Week
-        </button>
-        <button
-          className={view === "month" ? "active" : ""}
-          onClick={() => setView("month")}
-        >
-          Month
-        </button>
-      </div>
-      <p>{today}</p>
+  const renderToday = () => (
+    <>
+      <div className="date">{dateString}</div>
       <div className="checklist">
-        {checklistItems.map((item, index) => (
-          <div key={index}>
+        {tasks.map((task) => (
+          <label key={task.label}>
             <input
               type="checkbox"
-              checked={checkedItems[index]}
-              onChange={() => {
-                const newItems = [...checkedItems];
-                newItems[index] = !newItems[index];
-                setCheckedItems(newItems);
-              }}
+              checked={checked[task.label] || false}
+              onChange={() => handleCheck(task)}
             />
-            <label>{item.label}</label>
+            {task.label}
+          </label>
+        ))}
+      </div>
+      <div className="score">
+        Score: {score}/100 ({getGrade(score)})
+      </div>
+      <button onClick={handleSubmit}>Submit</button>
+    </>
+  );
+
+  const renderMonth = () => {
+    const currentMonth = today.getMonth();
+    const filtered = entries.filter(
+      (e) => new Date(e.date).getMonth() === currentMonth
+    );
+    return (
+      <div className="calendar-grid">
+        {filtered.map((entry) => (
+          <div key={entry.date} className="calendar-day">
+            <div>{entry.date.slice(5)}</div>
+            <div>{entry.score}</div>
+            <div>{entry.grade}</div>
           </div>
         ))}
       </div>
-      <p>Score: {totalScore}/100 ({grade})</p>
-      <button
-        onClick={handleSubmit}
-        className={submissionStatus === "submitted" ? "submitted" : ""}
-      >
-        {submissionStatus === "submitted" ? "Submitted!" : "Submit"}
-      </button>
+    );
+  };
+
+  const renderWeek = () => {
+    const todayTime = today.getTime();
+    const last7Days = entries.filter((entry) => {
+      const entryTime = new Date(entry.date).getTime();
+      return todayTime - entryTime <= 7 * 24 * 60 * 60 * 1000;
+    });
+
+    const avgScore =
+      last7Days.reduce((sum, e) => sum + (e.score || 0), 0) /
+        last7Days.length || 0;
+
+    return (
+      <>
+        <div className="score">
+          Weekly Avg: {Math.round(avgScore)}/100 ({getGrade(avgScore)})
+        </div>
+        <div className="calendar-grid">
+          {last7Days.map((entry) => (
+            <div key={entry.date} className="calendar-day">
+              <div>{entry.date.slice(5)}</div>
+              <div>{entry.score}</div>
+              <div>{entry.grade}</div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  };
+
+  return (
+    <div className="App">
+      <h1>Daily100</h1>
+      <div className="nav">
+        <button onClick={() => setView("Today")}>Today</button>
+        <button onClick={() => setView("Week")}>Week</button>
+        <button onClick={() => setView("Month")}>Month</button>
+      </div>
+      {view === "Today" && renderToday()}
+      {view === "Week" && renderWeek()}
+      {view === "Month" && renderMonth()}
     </div>
   );
 }
-
-export default App;
