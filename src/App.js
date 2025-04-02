@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "./firebase";
 import { collection, getDocs, setDoc, doc } from "firebase/firestore";
-import CalendarView from "./CalendarView";
 import "./App.css";
 
 const checklistItems = [
@@ -39,13 +38,16 @@ function App() {
   const [view, setView] = useState("today");
   const [data, setData] = useState([]);
   const [submitted, setSubmitted] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [editChecked, setEditChecked] = useState([]);
 
-  const today = new Date().toLocaleDateString("sv-SE");
+  // Use local time (not UTC) for today
+  const today = new Date().toLocaleDateString("sv-SE"); // e.g. "2025-04-02"
 
   const calculateScore = (checked) => {
-    return checked.reduce((total, isChecked, i) => isChecked ? total + checklistItems[i].weight : total, 0);
+    let total = 0;
+    checked.forEach((isChecked, i) => {
+      if (isChecked) total += checklistItems[i].weight;
+    });
+    return total;
   };
 
   const handleCheckboxChange = (index) => {
@@ -64,11 +66,10 @@ function App() {
       date: today,
       score: newScore,
       grade,
-      checked // save the checklist state for today
     });
     setSubmitted(true);
     setTimeout(() => setSubmitted(false), 2000);
-    loadScores();
+    loadScores(); // Refresh calendar view
   };
 
   const loadScores = async () => {
@@ -81,45 +82,6 @@ function App() {
       }, {})
     );
     setData(filtered);
-
-    const todayEntry = filtered.find((item) => item.date === today);
-    if (todayEntry && todayEntry.checked) {
-      setChecked(todayEntry.checked);
-      setScore(todayEntry.score);
-      setGrade(todayEntry.grade);
-    }
-  };
-
-  const handleEditDay = (date) => {
-    const entry = data.find((item) => item.date === date);
-    if (entry && entry.checked) {
-      setEditChecked(entry.checked);
-    } else {
-      const estimatedChecked = checklistItems.map((item) => {
-        return entry && entry.score >= item.weight ? true : false;
-      });
-      setEditChecked(estimatedChecked);
-    }
-    setSelectedDay(date);
-  };
-
-  const handleEditChange = (index) => {
-    const newChecked = [...editChecked];
-    newChecked[index] = !newChecked[index];
-    setEditChecked(newChecked);
-  };
-
-  const handleEditSave = async () => {
-    const updatedScore = calculateScore(editChecked);
-    const updatedGrade = getGrade(updatedScore);
-    await setDoc(doc(db, "scores", selectedDay), {
-      date: selectedDay,
-      score: updatedScore,
-      grade: updatedGrade,
-      checked: editChecked,
-    });
-    setSelectedDay(null);
-    loadScores();
   };
 
   useEffect(() => {
@@ -198,42 +160,7 @@ function App() {
         </>
       )}
 
-      {view !== "today" && (
-        <>
-          {renderScores()}
-          <CalendarView data={data} month={new Date()} onDayClick={handleEditDay} />
-        </>
-      )}
-
-      {selectedDay && (
-        <div className="mt-6 p-4 border rounded bg-white">
-          <h2 className="font-bold mb-2">Edit {selectedDay}</h2>
-          <div className="space-y-2">
-            {checklistItems.map((item, i) => (
-              <label key={i} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={editChecked[i] || false}
-                  onChange={() => handleEditChange(i)}
-                />
-                {item.label}
-              </label>
-            ))}
-          </div>
-          <button
-            onClick={handleEditSave}
-            className="mt-3 px-4 py-1 bg-black text-white rounded"
-          >
-            Save
-          </button>
-          <button
-            onClick={() => setSelectedDay(null)}
-            className="ml-2 text-sm text-gray-600 underline"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+      {view !== "today" && renderScores()}
     </div>
   );
 }
