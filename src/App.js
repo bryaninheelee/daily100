@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { db } from "./firebase";
-import {
-  collection,
-  setDoc,
-  doc,
-  getDocs,
-} from "firebase/firestore";
-import CalendarView from "./CalendarView";
+import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 import "./App.css";
 
 const checklistItems = [
@@ -44,115 +38,90 @@ function App() {
   const [view, setView] = useState("today");
   const [data, setData] = useState([]);
   const [submitted, setSubmitted] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
 
-  const today = new Date().toISOString().split("T")[0];
-  const activeDate = selectedDate || today;
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
 
-  const calculateScore = (checked) => {
-    let total = 0;
-    checked.forEach((isChecked, i) => {
-      if (isChecked) total += checklistItems[i].weight;
-    });
-    return total;
+  const calculateScore = (checkedArray) => {
+    return checkedArray.reduce((total, isChecked, index) => {
+      return isChecked ? total + checklistItems[index].weight : total;
+    }, 0);
   };
 
   const handleCheckboxChange = (index) => {
     const newChecked = [...checked];
     newChecked[index] = !newChecked[index];
-    setChecked(newChecked);
     const newScore = calculateScore(newChecked);
+    setChecked(newChecked);
     setScore(newScore);
     setGrade(getGrade(newScore));
   };
 
   const handleSubmit = async () => {
     const newScore = calculateScore(checked);
-    const grade = getGrade(newScore);
-
-    await setDoc(doc(collection(db, "scores"), activeDate), {
-      date: activeDate,
+    const newGrade = getGrade(newScore);
+    await setDoc(doc(db, "scores", today), {
+      date: today,
       score: newScore,
-      grade,
-      checklist: checked,
+      grade: newGrade,
+      checked: checked,
     });
-
     setSubmitted(true);
     setTimeout(() => setSubmitted(false), 2000);
-    await loadScores();
   };
 
   const loadScores = async () => {
     const snapshot = await getDocs(collection(db, "scores"));
     const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    setData(docs);
+    const filtered = Object.values(
+      docs.reduce((acc, curr) => {
+        acc[curr.date] = curr;
+        return acc;
+      }, {})
+    );
+    setData(filtered);
 
-    const current = docs.find((d) => d.date === activeDate);
-    if (current) {
-      setChecked(current.checklist || Array(checklistItems.length).fill(false));
-      setScore(current.score);
-      setGrade(current.grade);
-    } else {
-      setChecked(Array(checklistItems.length).fill(false));
-      setScore(0);
-      setGrade("F");
+    const todayDoc = docs.find((doc) => doc.date === today);
+    if (todayDoc && todayDoc.checked) {
+      setChecked(todayDoc.checked);
+      const restoredScore = calculateScore(todayDoc.checked);
+      setScore(restoredScore);
+      setGrade(getGrade(restoredScore));
     }
   };
 
   useEffect(() => {
     loadScores();
-  }, [activeDate]);
+  }, []);
 
-  const filteredData = () => {
+  const renderScores = () => {
     const now = new Date();
+    let filtered = data;
+
     if (view === "week") {
       const weekAgo = new Date(now);
       weekAgo.setDate(now.getDate() - 7);
-      return data.filter((item) => new Date(item.date) >= weekAgo);
-    }
-    if (view === "month") {
+      filtered = data.filter((item) => new Date(item.date) >= weekAgo);
+    } else if (view === "month") {
       const monthAgo = new Date(now);
       monthAgo.setMonth(now.getMonth() - 1);
-      return data.filter((item) => new Date(item.date) >= monthAgo);
+      filtered = data.filter((item) => new Date(item.date) >= monthAgo);
+    } else {
+      return null;
     }
-    return [];
-  };
 
-  const renderToday = () => (
-    <>
-      <div className="mb-2 text-sm">{activeDate}</div>
-      <div className="space-y-2">
-        {checklistItems.map((item, i) => (
-          <label key={i} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={checked[i]}
-              onChange={() => handleCheckboxChange(i)}
-            />
-            {item.label}
-          </label>
-        ))}
-      </div>
-      <div className="mt-4 font-semibold">
-        Score: {score}/100 ({grade})
-      </div>
-      <button
-        onClick={handleSubmit}
-        className={`mt-2 px-4 py-1 rounded text-white ${submitted ? "bg-green-600" : "bg-black"}`}
-      >
-        {submitted ? "Submitted!" : "Submit"}
-      </button>
-    </>
-  );
-
-  const renderAverages = () => {
-    const filtered = filteredData();
-    const average = filtered.reduce((sum, e) => sum + e.score, 0) / (filtered.length || 1);
+    const average = filtered.reduce((sum, entry) => sum + entry.score, 0) / filtered.length || 0;
     const averageGrade = getGrade(Math.round(average));
 
     return (
-      <div className="mb-4 font-semibold">
-        Average: {Math.round(average)} ({averageGrade})
+      <div className="mt-4 space-y-1">
+        {filtered.map((entry, i) => (
+          <div key={i}>
+            {entry.date} - {entry.score} ({entry.grade})
+          </div>
+        ))}
+        <div className="font-semibold mt-2">
+          Average: {Math.round(average)} ({averageGrade})
+        </div>
       </div>
     );
   };
@@ -165,28 +134,41 @@ function App() {
           <button
             key={v}
             className={`px-3 py-1 rounded text-white ${view === v ? "bg-black" : "bg-gray-600"}`}
-            onClick={() => {
-              setView(v);
-              setSelectedDate(null);
-            }}
+            onClick={() => setView(v)}
           >
             {v.charAt(0).toUpperCase() + v.slice(1)}
           </button>
         ))}
       </div>
 
-      {view === "today" && renderToday()}
-      {["week", "month"].includes(view) && (
+      {view === "today" && (
         <>
-          {selectedDate ? renderToday() : renderAverages()}
-          <CalendarView
-            data={data}
-            view={view}
-            selectedDate={selectedDate}
-            onSelectDate={(date) => setSelectedDate(date)}
-          />
+          <div className="mb-2 text-sm">{today}</div>
+          <div className="space-y-2">
+            {checklistItems.map((item, i) => (
+              <label key={i} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={checked[i]}
+                  onChange={() => handleCheckboxChange(i)}
+                />
+                {item.label}
+              </label>
+            ))}
+          </div>
+          <div className="mt-4 font-semibold">
+            Score: {score}/100 ({grade})
+          </div>
+          <button
+            onClick={handleSubmit}
+            className={`mt-2 px-4 py-1 rounded text-white ${submitted ? "bg-green-600" : "bg-black"}`}
+          >
+            {submitted ? "Submitted!" : "Submit"}
+          </button>
         </>
       )}
+
+      {view !== "today" && renderScores()}
     </div>
   );
 }
